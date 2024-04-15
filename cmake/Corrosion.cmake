@@ -1460,6 +1460,15 @@ function(corrosion_add_cxxbridge cxx_target)
 
         file(MAKE_DIRECTORY "${header_placement_dir}/${directory}" "${source_placement_dir}/${directory}")
 
+        message("aaaaaaa bbbbbbbbbbb")
+        file(WRITE "${CMAKE_BINARY_DIR}/namespace_replace.cmake"
+            [=[
+file(READ "${SOURCE}" TEXT)
+string(REPLACE "cxxbridge1" "cxxbridge2" TEXT "${TEXT}")
+string(REPLACE "CXXBRIDGE1" "CXXBRIDGE2" TEXT "${TEXT}")
+file(WRITE "${TARGET}" "${TEXT}")
+]=])
+
         add_custom_command(
             OUTPUT
             "${header_placement_dir}/${cxx_header}"
@@ -1470,6 +1479,14 @@ function(corrosion_add_cxxbridge cxx_target)
                 ${cxxbridge} ${rust_source_path}
                     --output "${source_placement_dir}/${cxx_source}"
                     --include "${cxx_target}/${cxx_header}"
+            COMMAND "${CMAKE_COMMAND}"
+                    "-DSOURCE=${header_placement_dir}/${cxx_header}"
+                    "-DTARGET=${header_placement_dir}/${cxx_header}"
+                    -P "${CMAKE_BINARY_DIR}/namespace_replace.cmake"
+            COMMAND "${CMAKE_COMMAND}"
+                    "-DSOURCE=${source_placement_dir}/${cxx_source}"
+                    "-DTARGET=${source_placement_dir}/${cxx_source}"
+                    -P "${CMAKE_BINARY_DIR}/namespace_replace.cmake"
             DEPENDS "cxxbridge_v${cxx_required_version}" "${rust_source_path}"
             COMMENT "Generating cxx bindings for crate ${_arg_CRATE}"
         )
@@ -1477,7 +1494,6 @@ function(corrosion_add_cxxbridge cxx_target)
         target_sources(${cxx_target}
             PRIVATE
                 "${header_placement_dir}/${cxx_header}"
-                "${generated_dir}/include/rust/cxx.h"
                 "${source_placement_dir}/${cxx_source}"
         )
     endforeach()
